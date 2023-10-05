@@ -1,8 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {Text, StyleSheet, View, Pressable} from 'react-native';
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as Location from 'expo-location';
 
 import ImageViewer from './components/ImageViewer'; 
 
@@ -20,6 +21,8 @@ export default function App() {
   const [maxDewPoint, setMaxDewPoint] = useState(null)
   const [minTemp, setMinTemp] = useState(null)
   const [maxTemp, setMaxTemp] = useState(null)
+  
+  const [location, setLocation] = useState({latitude: 0, longitude: 0});
 
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(() => {
@@ -44,33 +47,44 @@ export default function App() {
   }
 
   fetchWeather = () => {
-    fetch(`https://api.weather.gov/gridpoints/TOP/32,81/forecast/hourly`)
-      .then(res => res.json())
+    fetch(`https://api.weather.gov/points/`+location.latitude.toFixed(8) + ',' + location.longitude.toFixed(8))
+      .then(res => {
+        return res.json()}
+        )
+      .then(j => {
+        return fetch(j.properties.forecastHourly)
+      })
+      .then(res => {
+        return res.json()
+      })
       .then(json => {
-        // console.log(JSON.stringify(json));
-        setWeatherData(json.properties.periods)
-        if(startTime >= endTime){
-          endTime.setDate(endTime.getDate() + 1)
-        }
-        let filteredWeatherData = json.properties.periods.filter((x) => (new Date(x.startTime) > startTime) & (new Date(x.startTime) < endTime))
-        console.log(`Keeping ${filteredWeatherData.length} entries between ${startTime} and ${endTime}`)
-        setCheckingWeather(false);
-        console.log(filteredWeatherData.map(x=>calculateFeelsLike(x)))
-        const newMinTemp = Math.min(...filteredWeatherData.map((x)=>x.temperature))
-        const newMaxTemp = Math.max(...filteredWeatherData.map((x)=>x.temperature))
-        const newMinDewPoint = Math.min(...filteredWeatherData.map((x)=>x.dewpoint.value))*9.0/5.0 + 32
-        const newMaxDewPoint = Math.max(...filteredWeatherData.map((x)=>x.dewpoint.value))*9.0/5.0 + 32
-        setMinTemp(newMinTemp)
-        setMaxTemp(newMaxTemp)
-        setMinDewPoint(newMinDewPoint)
-        setMaxDewPoint(newMaxDewPoint)
-        if(newMaxTemp > 77){
-          setShortsOrPants('shorts')
-        } else {
-          setShortsOrPants('pants')
-        }
-        
-      });
+          setWeatherData(json.properties.periods)
+          if(startTime >= endTime){
+            endTime.setDate(endTime.getDate() + 1)
+          }
+          let filteredWeatherData = json.properties.periods.filter((x) => (new Date(x.startTime) > startTime) & (new Date(x.startTime) < endTime))
+          console.log(`Keeping ${filteredWeatherData.length} entries between ${startTime} and ${endTime}`)
+          setCheckingWeather(false);
+          console.log(filteredWeatherData.map(x=>x.temperature))
+          const newMinTemp = Math.min(...filteredWeatherData.map((x)=>x.temperature))
+          const newMaxTemp = Math.max(...filteredWeatherData.map((x)=>x.temperature))
+          const newMinDewPoint = Math.min(...filteredWeatherData.map((x)=>x.dewpoint.value))*9.0/5.0 + 32
+          const newMaxDewPoint = Math.max(...filteredWeatherData.map((x)=>x.dewpoint.value))*9.0/5.0 + 32
+          setMinTemp(newMinTemp)
+          setMaxTemp(newMaxTemp)
+          setMinDewPoint(newMinDewPoint)
+          setMaxDewPoint(newMaxDewPoint)
+          if(newMaxTemp > 77){
+            setShortsOrPants('shorts')
+          } else {
+            setShortsOrPants('pants')
+          }
+          
+      })
+    .catch(e => console.log("OH NO!", e))
+    // fetch(`https://api.weather.gov/gridpoints/LOT/74,75/forecast/hourly`)
+    //   .then(res => res.json())
+      
   }
 
   const handleButtonClick = () => {
@@ -82,6 +96,7 @@ export default function App() {
   }
 
   const handleResetButtonClick = () => {
+    getLocation();
     setWeatherData({});
     setMinDewPoint(null);
     setMaxDewPoint(null);
@@ -109,6 +124,36 @@ export default function App() {
     console.log("Setting end time to be " + ts.toISOString())
   }  
 
+  // function to check permissions and get Location
+  const getLocation = async () => {
+
+    console.log('getting location')
+
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      setErrorMsg('Permission to access location was denied');
+      return;
+    }
+
+    let new_location = await Location.getCurrentPositionAsync({});
+    setLocation({latitude: new_location.coords.latitude, longitude: new_location.coords.longitude})
+
+    console.log(`Found location long: ${new_location.coords.longitude.toFixed(2)} lat: ${new_location.coords.latitude.toFixed(2)}`)
+  };
+
+
+
+  useEffect(() => {
+    const getLoc = async () => {
+      try {
+        getLocation()
+      } catch (error) {
+        console.log(error); // handle the error
+      }
+    };
+    getLoc();
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.imageContainer}>
@@ -124,6 +169,7 @@ export default function App() {
         <Text>Max temp: {maxTemp}</Text>
         <Text>Min dew point: {minDewPoint}</Text>
         <Text>Max dew point: {maxDewPoint}</Text>
+        <Text>Lat Long: {location.latitude.toFixed(2)}, {location.longitude.toFixed(2)} </Text>
       </View>
       <View style={{flexDirection:'column'}}>
         <View style={{textAlign: 'center', alignItems: 'center'}}>
