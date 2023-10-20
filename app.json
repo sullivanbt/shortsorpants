@@ -27,6 +27,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.btsullivan23.shortsorpants",
+      "buildNumber": "2",
       "infoPlist": {
         "NSLocationAlwaysUsageDescription": "App requires geolocation to collect the weather from your current position.",
         "NSLocationUsageDescription": "App requires geolocation to collect the weather from your current position.",
