@@ -7,9 +7,9 @@ import * as Location from 'expo-location';
 
 import ImageViewer from './components/ImageViewer'; 
 
-const questionmarkImage = require('./assets/images/question_mark.png')
+const questionmarkImage = require('./assets/images/scales.png')
 const shortsImage = require('./assets/images/shorts.png');
-const pantsImage = require('./assets/images/pants.gif');
+const pantsImage = require('./assets/images/pants.png');
 
 export default function App() {
 
@@ -23,6 +23,7 @@ export default function App() {
   const [maxTemp, setMaxTemp] = useState(null)
   
   const [location, setLocation] = useState({latitude: 0, longitude: 0});
+  const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
 
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(() => {
@@ -131,10 +132,12 @@ export default function App() {
 
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      setErrorMsg('Permission to access location was denied');
+      console.error('Permission to access location was denied');
+      setLocationPermissionGranted(false);
       return;
     }
-
+    console.log(status)
+    setLocationPermissionGranted(true);
     let new_location = await Location.getCurrentPositionAsync({});
     setLocation({latitude: new_location.coords.latitude, longitude: new_location.coords.longitude})
 
@@ -142,16 +145,19 @@ export default function App() {
   };
 
 
-
   useEffect(() => {
-    const getLoc = async () => {
-      try {
-        getLocation()
-      } catch (error) {
-        console.log(error); // handle the error
+    (async () => {
+      
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationPermissionGranted(false);
+        return;
       }
-    };
-    getLoc();
+      setLocationPermissionGranted(true);
+      let new_location = await Location.getCurrentPositionAsync({});
+      setLocation({latitude: new_location.coords.latitude, longitude: new_location.coords.longitude})
+
+    })();
   }, []);
 
   return (
@@ -159,22 +165,12 @@ export default function App() {
       <View style={styles.imageContainer}>
         <ImageViewer placeholderImageSource={shortsOrPants==='tbd' ? questionmarkImage : shortsOrPants==='shorts' ? shortsImage : pantsImage} />
       </View>
-      <View style={styles.imageContainer}>
-        {checkingWeather ? <Text>`Checking weather....`</Text>: null }
-      </View>
-      <View style={styles.imageContainer}>
-        <Text></Text>
-        <Text></Text>
-        <Text>Min temp: {minTemp}</Text>
-        <Text>Max temp: {maxTemp}</Text>
-        <Text>Min dew point: {minDewPoint}</Text>
-        <Text>Max dew point: {maxDewPoint}</Text>
-        <Text>Lat Long: {location.latitude.toFixed(2)}, {location.longitude.toFixed(2)} </Text>
-      </View>
+
+      {locationPermissionGranted ? 
       <View style={{flexDirection:'column'}}>
         <View style={{textAlign: 'center', alignItems: 'center'}}>
           <Text>I'm going out between</Text>
-          </View>
+        </View> 
         <View style={{flexDirection: 'row'}}>
         <DateTimePicker
             testID="dateTimePicker"
@@ -194,15 +190,22 @@ export default function App() {
           />
         </View>
 
-      </View>
+      </View> : 
+      <View>
+        <Text style={{textAlign: 'center', alignItems: 'center'}}>Shorts or Pants needs location permissions to determine the weather. Please grant these permissions in your device's Settings screen.</Text>
+        <Text></Text>
+      </View> 
+      }
 
       <StatusBar style="auto" />
+      {locationPermissionGranted ? 
       <View
-      style={[styles.buttonContainer, { borderWidth: 5, borderColor: "#4B9CD3", borderRadius: 18 }]}
+      style={locationPermissionGranted ? [styles.buttonContainer, { borderWidth: 5, borderColor: "#4B9CD3", borderRadius: 18 }] : [[styles.buttonContainer, { borderWidth: 5, borderColor: "#FF3333", borderRadius: 18 }]]}
       >
         <Pressable
           style={[styles.button, { backgroundColor: "#fff" }]}
           onPress={handleButtonClick}
+          disabled={Math.abs(location.latitude) < 0.01}
         >
           <FontAwesome
             name="question"
@@ -210,9 +213,9 @@ export default function App() {
             color="#25292e"
             style={styles.buttonIcon}
           />
-          <Text style={[styles.buttonLabel, { color: "#25292e" }]}>Shorts or Pants</Text>
+          <Text style={[styles.buttonLabel, { color: "#25292e" }]}>{locationPermissionGranted ? Math.abs(location.latitude) > 0.00 ? 'Shorts or Pants' : 'Getting Location...' : `Grant Location Permissions to Use.`}</Text>
         </Pressable>
-        </View>
+      </View> : null}
         <View
       style={[styles.buttonContainer, { borderWidth: 5, borderColor: "#4B9CD3", borderRadius: 18 }]}
       >

@@ -4,7 +4,7 @@
     "slug": "shorts-or-pants",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/shorts.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
@@ -14,8 +14,24 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Shorts or Pants to use your location to collect local weather data.",
+          "locationAlwaysPermission": "Allow Shorts or Pants to use your location to collect local weather data.",
+          "locationWhenInUsePermission": "Allow Shorts or Pants to use your location to collect local weather data."
+        }
+      ]
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.btsullivan23.shortsorpants",
+      "infoPlist": {
+        "NSLocationAlwaysUsageDescription": "App requires geolocation to collect the weather from your current position.",
+        "NSLocationUsageDescription": "App requires geolocation to collect the weather from your current position.",
+        "NSLocationWhenInUseUsageDescription": "App requires geolocation to collect the weather from your current position."
+      }
     },
     "android": {
       "adaptiveIcon": {
